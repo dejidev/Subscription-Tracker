@@ -1,3 +1,5 @@
+import { SERVER_URL } from "../config/env.js";
+import { workflowClient } from "../config/upstash.js";
 import Subscription from "../models/subscription.model.js";
 
 export const createSubscription = async (req, res, next) => {
@@ -6,16 +8,29 @@ export const createSubscription = async (req, res, next) => {
             ...req.body,
             user: req.user._id,
         });
+
+        await workflowClient.trigger({
+            url: `${SERVER_URL}/api/v1/workflows/subscription/remainder`,
+            body: {
+                subscriptionId: subscription.id,
+            },
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            retries: 0
+        });
+
+
         res.status(201).json({ success: true, data: subscription })
     } catch (error) {
-        next(error)
+        next(error);
     }
 }
 
 
 export const getUserSubscription = async (req, res, next) => {
     try {
-        if (req.user.id !== req.param.id) {
+        if (req.user.id !== req.params.id) {
             const error = new Error("You are not the owner of this account")
         }
 
